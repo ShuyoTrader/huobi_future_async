@@ -11,7 +11,7 @@ Add this to your Cargo.toml
 
 ```toml
 [dependencies]
-huobi_future_async = { git = "https://github.com/hbdmapi/huobi_future_async.git" }
+huobi_future_async = { git = "https://github.com/ShuyoTrader/huobi_future_async.git" }
 ```
 
 ## Risk Warning
@@ -21,7 +21,7 @@ Use at your own risk. We will not be responsible for your investment losses.
 ## Example
 
 ```shell
-git clone https://github.com/hbdmapi/huobi_future_async.git
+git clone https://github.com/ShuyoTrader/huobi_future_async.git
 cd huobi_future_async
 cd examples
 // add your api key and secret key in endpoints.rs.
