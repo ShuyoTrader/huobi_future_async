@@ -1,8 +1,10 @@
 use crate::huobi_future::{models::Subscription, models::WebsocketEvent, HuobiWebsocket};
 use failure::Fallible;
+use huobi_future::NATS_CONN;
 use huobi_future_async as huobi_future;
 use std::collections::HashMap;
 extern crate simple_logger;
+// use nats::Connection;
 
 #[tokio::main]
 async fn main() -> Fallible<()> {
@@ -24,6 +26,9 @@ async fn main() -> Fallible<()> {
                 WebsocketEvent::Kline(kline) => {
                     println!("kline:{:?}", kline);
                     println!("kline json:{}", serde_json::to_string(&kline).unwrap());
+                    let re =
+                        NATS_CONN.publish("shuyo.kline", serde_json::to_string(&kline).unwrap());
+                    println!("{:?}", re);
                 }
                 // WebsocketEvent::IncrementalOrderBook(incremental_orderbook) => {
                 //     println!("incremental orderbook:{:?}", incremental_orderbook)
