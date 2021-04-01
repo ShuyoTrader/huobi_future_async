@@ -1,12 +1,12 @@
-use crate::error::{HuobiResponse, Error};
+use crate::error::{Error, HuobiResponse};
+use data_encoding::BASE64;
 use failure::Fallible;
 use futures::prelude::*;
-use ring::{digest, hmac};
 use http::Method;
 use reqwest_ext::*;
+use ring::hmac;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::{to_string, to_value, Value};
-use data_encoding::BASE64;
 use tracing::*;
 use url::Url;
 
@@ -31,7 +31,7 @@ impl Transport {
     pub fn new() -> Self {
         Self {
             credential: None,
-            client: reqwest::Client::builder().build().unwrap()
+            client: reqwest::Client::builder().build().unwrap(),
         }
     }
 
@@ -201,8 +201,16 @@ impl Transport {
 
         let paramss = build_query_string(&query);
 
-        let api_host = if endpoint == "/v1/futures/transfer" { SPOT_API_HOST } else { API_HOST };
-        let api_url = if endpoint == "/v1/futures/transfer" { SPOT_BASE } else { BASE };
+        let api_host = if endpoint == "/v1/futures/transfer" {
+            SPOT_API_HOST
+        } else {
+            API_HOST
+        };
+        let api_url = if endpoint == "/v1/futures/transfer" {
+            SPOT_BASE
+        } else {
+            BASE
+        };
 
         let signature = sign_hmac_sha256_base64(
             secret,
@@ -213,8 +221,7 @@ impl Transport {
 
         let url = format!("{}{}", api_url, endpoint);
         let mut url = Url::parse_with_params(&url, &query)?;
-        url.query_pairs_mut()
-            .append_pair("Signature", &signature);
+        url.query_pairs_mut().append_pair("Signature", &signature);
 
         let req = self
             .client
@@ -239,23 +246,17 @@ impl Transport {
             Some((k, s)) => Ok((k, s)),
         }
     }
-
-
-
 }
 
-
 pub fn sign_hmac_sha256_base64(secret: &str, digest: &str) -> Fallible<String> {
-
-    let signed_key = hmac::SigningKey::new(&digest::SHA256, secret.as_bytes());
+    let signed_key = hmac::Key::new(hmac::HMAC_SHA256, secret.as_bytes());
     let signature = hmac::sign(&signed_key, digest.as_bytes());
     let b64_encoded_sig = BASE64.encode(signature.as_ref());
 
     Ok(b64_encoded_sig)
 }
 
-pub fn build_query_string(parameters: &[(String,String)]) -> String 
-{
+pub fn build_query_string(parameters: &[(String, String)]) -> String {
     parameters
         .iter()
         .map(|(key, value)| format!("{}={}", key, percent_encode(&value.clone())))

@@ -1,10 +1,9 @@
-use crate::{
-    error::Error,
-    models::*,
-};
+use crate::{error::Error, models::*};
 use failure::Fallible;
-use futures::{prelude::*, stream::SplitStream, stream::SplitSink};
+use flate2::read::GzDecoder;
+use futures::{prelude::*, stream::SplitSink, stream::SplitStream};
 use serde_json::from_str;
+use std::io::Read;
 use std::{
     collections::HashMap,
     pin::Pin,
@@ -16,9 +15,6 @@ use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 use tracing::*;
 use tungstenite::Message;
 use url::Url;
-use flate2::read::GzDecoder;
-use std::io::Read;
-
 
 pub const WS_URL: &str = "wss://api.hbdm.vn";
 pub const WS_HOST: &str = "api.hbdm.vn";
@@ -29,7 +25,7 @@ pub type StoredStream = SplitStream<WSStream>;
 pub type StoredSink = SplitSink<WSStream, tungstenite::Message>;
 
 #[allow(clippy::module_name_repetitions)]
-pub struct HuobiWebsocket  {
+pub struct HuobiWebsocket {
     credential: Option<(String, String)>,
     subscriptions: HashMap<Subscription, usize>,
     tokens: HashMap<usize, Subscription>,
@@ -41,7 +37,7 @@ pub struct HuobiWebsocket  {
 impl HuobiWebsocket {
     pub fn new<Callback: 'static>(api_key: &str, api_secret: &str, handler: Callback) -> Self
     where
-        Callback: FnMut(WebsocketEvent) -> Fallible<()>
+        Callback: FnMut(WebsocketEvent) -> Fallible<()>,
     {
         Self {
             credential: Some((api_key.into(), api_secret.into())),
@@ -64,21 +60,21 @@ impl HuobiWebsocket {
 
         let endpoint = Url::parse(&format!("{}{}", WS_URL, end)).unwrap();
 
-        let (ws_stream, _) = connect_async(endpoint).await.expect("Failed to connect to websocket");
+        let (ws_stream, _) = connect_async(endpoint)
+            .await
+            .expect("Failed to connect to websocket");
         println!("[Websocket] websocket handshake has been successfully completed.");
 
         let (sink, stream) = ws_stream.split();
 
-        let token = self
-            .streams
-            .push(stream);
+        let token = self.streams.insert(stream);
+        // .push(stream);
 
         self.sinks.insert(subscription.clone(), sink);
         self.subscriptions.insert(subscription.clone(), token);
         self.tokens.insert(token, subscription.clone());
 
         Ok(())
-
     }
 
     pub fn unsubscribe(&mut self, subscription: &Subscription) -> Option<StoredStream> {
@@ -88,30 +84,23 @@ impl HuobiWebsocket {
             .and_then(|token| StreamUnordered::take(streams, *token))
     }
 
-
     pub fn check_key(&self) -> Fallible<(&str, &str)> {
         match self.credential.as_ref() {
             None => Err(Error::NoApiKeySet.into()),
             Some((k, s)) => Ok((k, s)),
         }
     }
-
 }
 
-impl  Stream for HuobiWebsocket {
+impl Stream for HuobiWebsocket {
     type Item = Fallible<WebsocketEvent>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         match Pin::new(&mut self.as_mut().get_mut().streams).poll_next(cx) {
             Poll::Ready(Some((y, _token))) => match y {
-                StreamYield::Item(item) => {
-                    Poll::Ready({
-                        Some(
-                            item.map_err(failure::Error::from)
-                                .and_then(parse_message),
-                        )
-                    })
-                }
+                StreamYield::Item(item) => Poll::Ready({
+                    Some(item.map_err(failure::Error::from).and_then(parse_message))
+                }),
                 StreamYield::Finished(_) => Poll::Pending,
             },
             Poll::Ready(None) => Poll::Ready(Some(Err(Error::NoStreamSubscribed.into()))),
@@ -134,9 +123,8 @@ fn parse_message(msg: Message) -> Fallible<WebsocketEvent> {
     d.read_to_string(&mut s).unwrap();
 
     trace!("Incoming websocket message {:?}", s);
-    
+
     let message: WebsocketEvent = from_str(&s)?;
 
     Ok(message)
 }
-

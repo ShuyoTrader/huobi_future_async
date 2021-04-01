@@ -20,31 +20,33 @@ async fn main() -> Fallible<()> {
     let mut ws: HuobiWebsocket =
         HuobiWebsocket::new(access_key, secret_key, |event: WebsocketEvent| {
             match event {
-                WebsocketEvent::OrderBook(orderbook) => println!("orderbook:{:?}", orderbook),
-                WebsocketEvent::Kline(kline) => println!("kline:{:?}", kline),
-                WebsocketEvent::IncrementalOrderBook(incremental_orderbook) => {
-                    println!("incremental orderbook:{:?}", incremental_orderbook)
+                // WebsocketEvent::OrderBook(orderbook) => println!("orderbook:{:?}", orderbook),
+                WebsocketEvent::Kline(kline) => {
+                    println!("kline:{:?}", kline);
+                    println!("kline json:{}", serde_json::to_string(&kline).unwrap());
                 }
-                WebsocketEvent::BBO(bbo) => println!("bbo:{:?}", bbo),
-                WebsocketEvent::TradeDetail(trade_detail) => {
-                    println!("trade_detail:{:?}", trade_detail)
-                }
-
-                WebsocketEvent::Order(order) => println!("order:{:?}", order),
-                WebsocketEvent::MatchOrder(order) => println!("Match order:{:?}", order),
-                WebsocketEvent::Position(position) => println!("position:{:?}", position),
-                WebsocketEvent::Account(account) => println!("account:{:?}", account),
-                WebsocketEvent::ContractInfo(contract_info) => {
-                    println!("contract_info:{:?}", contract_info)
-                }
-                WebsocketEvent::Liquidation(liquidation_orders) => {
-                    println!("liquidation orders:{:?}", liquidation_orders)
-                }
-                WebsocketEvent::TriggerOrder(order) => println!("Trigger order:{:?}", order),
-
-                WebsocketEvent::Index(index_price) => println!("index_price:{:?}", index_price),
-                WebsocketEvent::Basis(basis) => println!("basis:{:?}", basis),
-
+                // WebsocketEvent::IncrementalOrderBook(incremental_orderbook) => {
+                //     println!("incremental orderbook:{:?}", incremental_orderbook)
+                // }
+                // WebsocketEvent::BBO(bbo) => println!("bbo:{:?}", bbo),
+                // WebsocketEvent::TradeDetail(trade_detail) => {
+                //     println!("trade_detail:{:?}", trade_detail)
+                // }
+                //
+                // WebsocketEvent::Order(order) => println!("order:{:?}", order),
+                // WebsocketEvent::MatchOrder(order) => println!("Match order:{:?}", order),
+                // WebsocketEvent::Position(position) => println!("position:{:?}", position),
+                // WebsocketEvent::Account(account) => println!("account:{:?}", account),
+                // WebsocketEvent::ContractInfo(contract_info) => {
+                //     println!("contract_info:{:?}", contract_info)
+                // }
+                // WebsocketEvent::Liquidation(liquidation_orders) => {
+                //     println!("liquidation orders:{:?}", liquidation_orders)
+                // }
+                // WebsocketEvent::TriggerOrder(order) => println!("Trigger order:{:?}", order),
+                //
+                // WebsocketEvent::Index(index_price) => println!("index_price:{:?}", index_price),
+                // WebsocketEvent::Basis(basis) => println!("basis:{:?}", basis),
                 _ => (),
             };
 
